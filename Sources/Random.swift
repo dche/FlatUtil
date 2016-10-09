@@ -211,6 +211,10 @@ public struct Arc4Rng: Rng {
 	mutating public func nextUInt32() -> UInt32 {
 		return arc4random()
 	}
+
+    mutating public func nextUInt32(max: UInt32) -> UInt32 {
+        return arc4random_uniform(max &+ 1)
+    }
 }
 
 #endif
