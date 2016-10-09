@@ -30,19 +30,19 @@ public protocol Rng {
     mutating func nextFloat() -> Float
 
 	/// Returns a random `Float` number in the interval [0, 1]
-    mutating func nextFloatClosed() -> Float
+    // mutating func nextFloatClosed() -> Float
 
 	/// Returns a random `Float` number in the interval (0, 1)
-    mutating func nextFloatOpen() -> Float
+    // mutating func nextFloatOpen() -> Float
 
     /// Returns a random `Double` number in the interval [0, 1)
     mutating func nextDouble() -> Double
 
     /// Returns a random `Double` number in the interval [0, 1]
-    mutating func nextDoubleClosed() -> Double
+    // mutating func nextDoubleClosed() -> Double
 
     /// Returns a random `Double` number in the interval (0, 1)
-    mutating func nextDoubleOpen() -> Double
+    // mutating func nextDoubleOpen() -> Double
 }
 
 public protocol SeedableRng: Rng {
