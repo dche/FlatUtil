@@ -90,7 +90,7 @@ class FutureTests: XCTestCase {
         let h = f.join(g) {
             Future(value: "\($0) == \($1)")
         }
-        var r = h.result(timeout: 1.milliseconds)
+        var r = h.result(timeout: 10.milliseconds)
         XCTAssertNotNil(r.error)
         XCTAssertFalse(f.isCompleted)
         XCTAssert(g.isCompleted)
