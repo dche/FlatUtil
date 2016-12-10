@@ -148,68 +148,15 @@ enum JValue: Equatable {
     }
 }
 
-struct JSONParsingError: Error {
-    let line: Int
-    let column: Int
-    let reason: String
-}
-
 func parse(json: String) -> Result<JValue> {
 
     func isNumber(_ cp: UInt8) -> Bool {
         return cp > 47 && cp < 58
     }
 
-    struct Position {
-        let string: String.UTF8View
-        let index: String.UTF8View.Index
-        let line: Int
-        let column: Int
-
-        var character: UInt8 {
-            return string[index]
-        }
-
-        func error<T>(message: String) -> Result<T> {
-            let err =
-                JSONParsingError(line: line, column: column, reason: message)
-            return .error(err)
-        }
-
-        func newline() -> Result<Position> {
-            let idx = string.index(index, offsetBy: 1)
-            guard idx < string.endIndex else {
-                return self.error(message: "Unexpected end of file.")
-            }
-            let pos =
-                Position(string: string, index: idx, line: line + 1, column: 0)
-            return .value(pos)
-        }
-
-        func advance() -> Result<Position> {
-            let idx = string.index(index, offsetBy: 1)
-            guard idx < string.endIndex else {
-                return self.error(message: "Unexpected end of file.")
-            }
-            let pos =
-                Position(string: string, index: idx, line: line, column: column + 1)
-            return .value(pos)
-        }
-    }
-
-    struct ParseState<T> {
-        let value: T
-        let position: Position
-
-        init (_ value: T, _ position: Position) {
-            self.value = value
-            self.position = position
-        }
-    }
-
     // Reads characters until a non-separator character is found.
     // Returns the position of the non-seperator character.
-    func consumeSeparators(at i: Position) -> Result<Position> {
+    func consumeSeparators(at i: ParsingPosition) -> Result<ParsingPosition> {
         switch i.character {
         case 10:
              // "\n"
@@ -243,7 +190,7 @@ func parse(json: String) -> Result<JValue> {
     }
 
     // Reads a specific string starting from position `i`.
-    func expect(keyword: String, at i: Position) -> Result<Position> {
+    func expect(keyword: String, at i: ParsingPosition) -> Result<ParsingPosition> {
         var j = i
         for ecp in keyword.utf8 {
             guard ecp == j.character else {
@@ -260,13 +207,13 @@ func parse(json: String) -> Result<JValue> {
         return .value(j)
     }
 
-    func expectNumber(at i: Position) -> Result<ParseState<Double>> {
+    func expectNumber(at i: ParsingPosition) -> Result<ParsingState<Double>> {
 
         var chars: [Character] = []
 
         func expectDigits(
-            at i: Position
-        ) -> Result<Position> {
+            at i: ParsingPosition
+        ) -> Result<ParsingPosition> {
             switch i.character {
             case let chr where isNumber(chr):
                 chars.append(Character(UnicodeScalar(chr)))
@@ -278,7 +225,7 @@ func parse(json: String) -> Result<JValue> {
             }
         }
 
-        func expectInt(at i: Position) -> Result<Position> {
+        func expectInt(at i: ParsingPosition) -> Result<ParsingPosition> {
             return expect(keyword: "0", at: i).map { p in
                 chars.append(Character("0"))
                 return p
@@ -287,14 +234,14 @@ func parse(json: String) -> Result<JValue> {
             }
         }
 
-        func expectFrac(at i: Position) -> Result<Position> {
+        func expectFrac(at i: ParsingPosition) -> Result<ParsingPosition> {
             return expect(keyword: ".", at: i).flatMap { p in
                 chars.append(".")
                 return expectDigits(at: p)
             }
         }
 
-        func expectExp(at i: Position) -> Result<Position> {
+        func expectExp(at i: ParsingPosition) -> Result<ParsingPosition> {
             return expect(keyword: "e", at: i).orElse {
                 return expect(keyword: "E", at: i)
             }.flatMap { p in
@@ -312,7 +259,7 @@ func parse(json: String) -> Result<JValue> {
             }
         }
 
-        func expectDecimal(at i: Position) -> Result<Position> {
+        func expectDecimal(at i: ParsingPosition) -> Result<ParsingPosition> {
             return expectInt(at: i).flatMap { p in
                 expectFrac(at: p).flatMap { p in
                     return expectExp(at: p).orElse {
@@ -326,7 +273,7 @@ func parse(json: String) -> Result<JValue> {
             }
         }
 
-        func expectDouble(at i: Position) -> Result<ParseState<Double>> {
+        func expectDouble(at i: ParsingPosition) -> Result<ParsingState<Double>> {
             return expectDecimal(at: i).flatMap { p in
                 let dbl = strtod(String(chars), nil)
                 if errno == ERANGE {
@@ -336,53 +283,53 @@ func parse(json: String) -> Result<JValue> {
                     }
                     return i.error(message: msg)
                 }
-                return .value(ParseState(dbl, p))
+                return .value(ParsingState(dbl, p))
             }
         }
 
         return expect(keyword: "-", at: i).flatMap { p in
             return expectDouble(at: p).map {
-                ParseState($0.value * -1, $0.position)
+                ParsingState($0.value * -1, $0.position)
             }
         }.orElse {
             return expectDouble(at: i)
         }
     }
 
-    func expectString(at i: Position) -> Result<ParseState<String>> {
-        func expectEscapedcharacter(at i: Position) -> Result<ParseState<Character>> {
+    func expectString(at i: ParsingPosition) -> Result<ParsingState<String>> {
+        func expectEscapedcharacter(at i: ParsingPosition) -> Result<ParsingState<Character>> {
             switch i.character {
             case 110:
                 return i.advance().map {
-                    ParseState(Character("\n"), $0)
+                    ParsingState(Character("\n"), $0)
                 }
             case 34:
                 return i.advance().map {
-                    ParseState(Character("\""), $0)
+                    ParsingState(Character("\""), $0)
                 }
             case 92:
                 return i.advance().map {
-                    ParseState(Character("\\"), $0)
+                    ParsingState(Character("\\"), $0)
                 }
             case 47:    // "\/"
                 return i.advance().map {
-                    ParseState(Character(UnicodeScalar(47)), $0)
+                    ParsingState(Character(UnicodeScalar(47)), $0)
                 }
             case 98:    // "\b", Back space
                 return i.advance().map {
-                    ParseState(Character(UnicodeScalar(8)), $0)
+                    ParsingState(Character(UnicodeScalar(8)), $0)
                 }
             case 102:   // "\f", Form feed
                 return i.advance().map {
-                    ParseState(Character(UnicodeScalar(12)), $0)
+                    ParsingState(Character(UnicodeScalar(12)), $0)
                 }
             case 114:
                 return i.advance().map {
-                    ParseState(Character("\r"), $0)
+                    ParsingState(Character("\r"), $0)
                 }
             case 116:
                 return i.advance().map {
-                    ParseState(Character("\t"), $0)
+                    ParsingState(Character("\t"), $0)
                 }
             case 117:   // "\u"
                 return i.advance().flatMap { j in
@@ -414,14 +361,14 @@ func parse(json: String) -> Result<JValue> {
                     guard let us = UnicodeScalar(u) else {
                         return i.error(message: "Invalid escape sequence.")
                     }
-                    return .value(ParseState(Character(us), p))
+                    return .value(ParsingState(Character(us), p))
                 }
             default:
                 return i.error(message: "Invalid escape sequence.")
             }
         }
 
-        func expectCharacter(after: [Character], at i: Position) -> Result<ParseState<[Character]>> {
+        func expectCharacter(after: [Character], at i: ParsingPosition) -> Result<ParsingState<[Character]>> {
             let chr = i.character
             switch chr {
             case let c where c < 32 || c == 127:
@@ -430,7 +377,7 @@ func parse(json: String) -> Result<JValue> {
                 return i.error(message: "Control character appears in a string.")
             case 34:
                 // "\""
-                return i.advance().map { ParseState(after, $0) }
+                return i.advance().map { ParsingState(after, $0) }
             case 92:
                 // "\"
                 let ps = i.advance().flatMap {
@@ -460,16 +407,16 @@ func parse(json: String) -> Result<JValue> {
 
         return expect(keyword: "\"", at: i).flatMap { p in
             return expectCharacter(after: [], at: p).map { ps in
-                return ParseState(String(ps.value), ps.position)
+                return ParsingState(String(ps.value), ps.position)
             }
         }
     }
 
-    func expectArray(at i: Position) -> Result<ParseState<[JValue]>> {
+    func expectArray(at i: ParsingPosition) -> Result<ParsingState<[JValue]>> {
         return expect(keyword: "[", at: i).flatMap { p in
             return consumeSeparators(at: p).flatMap { p in
                 return expect(keyword: "]", at: p).map {
-                    ParseState([], $0)
+                    ParsingState([], $0)
                 }.orElse {
                     var ary = [JValue]()
                     var pos = p
@@ -495,7 +442,7 @@ func parse(json: String) -> Result<JValue> {
                             case let .value(a) where a.isEmpty:
                                 continue
                             case let .value(a):
-                                return .value(ParseState(a, pos))
+                                return .value(ParsingState(a, pos))
                             case let .error(err):
                                 return .error(err)
                             }
@@ -508,9 +455,9 @@ func parse(json: String) -> Result<JValue> {
         }
     }
 
-    func expectObject(at i: Position) -> Result<ParseState<[String:JValue]>> {
+    func expectObject(at i: ParsingPosition) -> Result<ParsingState<[String:JValue]>> {
         var dict = [String:JValue]()
-        func expectItem(at i: Position) -> Result<ParseState<[String:JValue]>> {
+        func expectItem(at i: ParsingPosition) -> Result<ParsingState<[String:JValue]>> {
             return expectString(at: i).flatMap { ps in
                 let nm = ps.value
                 return consumeSeparators(at: ps.position).flatMap { p in
@@ -523,7 +470,7 @@ func parse(json: String) -> Result<JValue> {
                                         return expectItem(at: p)
                                     }
                                 }.orElse {
-                                    return .value(ParseState(dict, p))
+                                    return .value(ParsingState(dict, p))
                                 }
                             }
                         }
@@ -535,12 +482,12 @@ func parse(json: String) -> Result<JValue> {
         return expect(keyword: "{", at: i).flatMap { p in
             return consumeSeparators(at: p).flatMap { p in
                 return expect(keyword: "}", at: p).map {
-                    ParseState([:], $0)
+                    ParsingState([:], $0)
                 }.orElse {
                     return expectItem(at: p).flatMap { ps in
                         return consumeSeparators(at: ps.position).flatMap { p in
                             expect(keyword: "}", at: p).map {
-                                ParseState(ps.value, $0)
+                                ParsingState(ps.value, $0)
                             }
                         }
                     }
@@ -549,36 +496,36 @@ func parse(json: String) -> Result<JValue> {
         }
     }
 
-    func expectValue(at i: Position) -> Result<ParseState<JValue>> {
+    func expectValue(at i: ParsingPosition) -> Result<ParsingState<JValue>> {
         return consumeSeparators(at: i).flatMap { j in
             switch j.character {
             case 123:   // "{"
                 return expectObject(at: j).flatMap { ps in
-                    return .value(ParseState(.object(ps.value), ps.position))
+                    return .value(ParsingState(.object(ps.value), ps.position))
                 }
             case 91:    // "["
                 return expectArray(at: j).flatMap { ps in
-                    return .value(ParseState(.array(ps.value), ps.position))
+                    return .value(ParsingState(.array(ps.value), ps.position))
                 }
             case 34:    // "\""
                 return expectString(at: j).map { ps in
-                    return ParseState(.string(ps.value), ps.position)
+                    return ParsingState(.string(ps.value), ps.position)
                 }
             case 110:   // "n"
                 return expect(keyword: "null", at: j).map {
-                    ParseState(.null, $0)
+                    ParsingState(.null, $0)
                 }
             case 116:   // "t"
                 return expect(keyword: "true", at: j).map {
-                    ParseState(.bool(true), $0)
+                    ParsingState(.bool(true), $0)
                 }
             case 102:   // "f"
                 return expect(keyword: "false", at: j).map {
-                    ParseState(.bool(false), $0)
+                    ParsingState(.bool(false), $0)
                 }
             case let chr where chr == 45 || isNumber(chr):    // "-", or number.
                 return expectNumber(at: j).map { ps in
-                    return ParseState(.number(ps.value), ps.position)
+                    return ParsingState(.number(ps.value), ps.position)
                 }
             default:
                 return j.error(message: "Unexpected character.")
@@ -587,7 +534,7 @@ func parse(json: String) -> Result<JValue> {
     }
 
     let utf8 = (json + "\n").utf8
-    let start = Position(string: utf8, index: utf8.startIndex, line: 0, column: 0)
+    let start = ParsingPosition(string: utf8, index: utf8.startIndex, line: 0, column: 0)
     return consumeSeparators(at: start).flatMap {
         return expectObject(at: $0).flatMap { .value(.object($0.value)) }
     }

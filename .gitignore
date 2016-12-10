@@ -1,5 +1,5 @@
 .build
 *.xcodeproj
 *.plist
-
+*.playground
 .DS_Store
