@@ -55,8 +55,7 @@ public final class Commandline {
     /// option values.
     ///
     /// This structure is created after the command line is successfully
-    /// parsed, and then it is passed to the `CommandBlock` of the
-    /// `Commandline`.
+    /// parsed.
     public struct Options {
 
         private let options: [String:CommandlineOption]
@@ -249,9 +248,6 @@ public final class Commandline {
         }
     }
 
-    /// Type of command
-    public typealias CommandBlock = (ArraySlice<String>, Options) -> Void
-
     private static let commandNamePattern = Regexp(pattern: "^[a-z][a-z_\\-]+$")!
 
     /// Name of the command.
@@ -266,13 +262,10 @@ public final class Commandline {
 
     private let parser = Parser()
 
-    private let block: CommandBlock
-
     /// Constructs a commandline program.
-    public init (name: String = "", description: String, block: @escaping CommandBlock) {
+    public init (name: String = "", description: String) {
         self.name = name
         self.description = description
-        self.block = block
     }
 
     /// Constructs a `Commandline.ParsingError`.
@@ -397,73 +390,57 @@ public final class Commandline {
         return diff < 3
     }
 
-    // For unit testing.
-    func parse(_ args: ArraySlice<String>) -> (ArraySlice<String>, Options)? {
+    /// Parses the command line arguments, returns the parse result if
+    /// command names and options are valid.
+    ///
+    /// - parameter arguments: The command line arguments.
+    /// - returns: `nil` if command names or options are invlid, other wise,
+    /// returns a triple tuple that contains:
+    ///   1. The sub-command path,
+    ///   1. The parameters should be passd to the command,
+    ///   1. An `Options` structure that contains all defined options.
+    public func parse(arguments: [String]) -> ([String], [String], Options)? {
+        let args = arguments.dropFirst()
         guard !args.isEmpty else {
-            return (args, Options(options: parser._options))
+            // Program name only.
+            return ([], [], Options(options: parser._options))
         }
-
         let subcmd = args[args.startIndex]
         // No sub-command.
         if subcmd.hasPrefix("-") || _subcommands.isEmpty {
-            let params = self.parser.parse(commandline: args)
-            params.error.map {
-                if case let ParsingError.cause(str) = $0 {
-                    Commandline.printError(str)
-                }
+            switch self.parser.parse(commandline: args) {
+            case let .value(params):
+                let opts = Options(options: parser._options)
+                return ([], [String](params), opts)
+            case let .error(ParsingError.cause(str)):
+                Commandline.printError(str)
+                return nil
+            default:
+                fatalError("Unreachable.")
             }
-            return params.value.map { ($0, Options(options: parser._options)) }
         }
         // Maybe a sub-command.
         if let cmd = _subcommands[subcmd] {
-            return cmd.parse(args.dropFirst())
+            guard let (subPath, params, opts) = cmd.parse(arguments: [String](args)) else {
+                return nil
+            }
+            return ([cmd.name] + subPath, params, opts)
+        }
+        // Not a valid sub-command.
+        Commandline.printError("Unknown command: \"\(subcmd)\".")
+        // Maybe a typo, print suggestions.
+        let simcmds = _subcommands.keys.filter {
+            self.isSimilar($0, subcmd)
+        }
+        if !simcmds.isEmpty {
+            let initial = simcmds.dropLast()
+            // SWIFT EVOLUTION: No `last` method of a weired collection type.
+            var hint = simcmds.suffix(1).first!
+            if !initial.isEmpty {
+                hint = initial.joined(separator: ", ") + " or \(hint)"
+            }
+            print("Do you mean, \(hint)?")
         }
         return nil
-    }
-
-    /// Parses commandline arguments, and then executes the command block.
-    public func execute(arguments: [String]) -> Never  {
-        let args = arguments.dropFirst()
-        if args.isEmpty {
-            // Program name only.
-            self.block(args, Options(options: parser._options))
-        } else {
-            let subcmd = args[args.startIndex]
-            // No sub-command.
-            if subcmd.hasPrefix("-") || _subcommands.isEmpty {
-                switch self.parser.parse(commandline: args) {
-                case let .value(params):
-                    let opts = Options(options: parser._options)
-                    self.block(params, opts)
-                    exit(0)
-                case let .error(ParsingError.cause(str)):
-                    Commandline.printError(str)
-                    exit(-1)
-                default:
-                    fatalError("Unreachable.")
-                }
-            }
-            // Maybe a sub-command.
-            if let cmd = _subcommands[subcmd] {
-                cmd.execute(arguments: [String](args.dropFirst()))
-            }
-            // Not a sub-command.
-            Commandline.printError("Unknown command: \"\(subcmd)\".")
-            // Maybe a typo, print suggestions.
-            let simcmds = _subcommands.keys.filter {
-                self.isSimilar($0, subcmd)
-            }
-            if !simcmds.isEmpty {
-                let initial = simcmds.dropLast()
-                // SWIFT EVOLUTION: No `last` method of a weired collection type.
-                var hint = simcmds.suffix(1).first!
-                if !initial.isEmpty {
-                    hint = initial.joined(separator: ", ") + " or \(hint)"
-                }
-                print("Do you mean, \(hint)?")
-            }
-            exit(-1)
-        }
-        exit(0)
     }
 }
