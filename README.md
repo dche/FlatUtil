@@ -7,7 +7,6 @@ This repository contains small utilities used in FLAT (Flat Liberal Art Toolkit)
 ### General
 
 - [ ] Works on Linux.
-- [ ] CI.
 - [ ] Documenting and host document somewhere.
 
 ### Random
