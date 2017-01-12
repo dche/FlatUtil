@@ -78,7 +78,12 @@ e
     E-
  */
 
-import Darwin   // for `strtod()`
+// for `strtod()`
+#if os(macOS)
+    import Darwin
+#else
+    import Glibc
+#endif
 
 enum JValue: Equatable {
     case object([String:JValue])

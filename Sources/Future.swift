@@ -8,6 +8,10 @@
 
 import Foundation
 
+#if os(Linux)
+    import Dispatch
+#endif
+
 // SWIFT EVOLUTION: It's ideal to make `FutureExecutionError` a subtype of
 //                  `Future`. Can not do this because `Future` is generic.
 
@@ -32,7 +36,8 @@ public final class Future<T> {
         // The only place where `_result` is set.
         self._result = r
 
-        _lock!.lock()
+        let lk = _lock!
+        lk.lock()
         self._semaphore?.signal()
         self._semaphore = nil
         // Schedule dependants.
@@ -43,9 +48,9 @@ public final class Future<T> {
             }
             _completions = []
         }
-        _lock!.unlock()
         _lock = nil
         _exec = nil
+        lk.unlock()
     }
 
     private func onComplete(_ op: @escaping (Result<T>) -> Void) {

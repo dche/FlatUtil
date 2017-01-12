@@ -13,4 +13,12 @@ class RngTests: XCTestCase {
         var rng = Xoroshiro()
         XCTAssertNotEqual(rng.nextUInt32(), rng.nextUInt32())
     }
+
+    func testDefaultRng() {
+        let f = Float.random()
+        let f1 = Float.random()
+        XCTAssertNotEqual(f, f1)
+        XCTAssertNotEqual(f1, Float.random())
+        XCTAssertNotEqual(f1, Float.random())
+    }
 }

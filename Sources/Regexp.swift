@@ -8,6 +8,11 @@
 
 import Foundation
 
+#if os(Linux)
+    public typealias NSRegularExpression = RegularExpression
+    public typealias NSTextCheckingResult = TextCheckingResult
+#endif
+
 /// A simple wrapper of `NSRegularExpression`.
 ///
 /// - Example
@@ -37,7 +42,11 @@ public struct Regexp: Equatable, Hashable {
             if rg.length > 0 {
                 ms[0] = String.init(ns.substring(with: results.range))
                 for i in 1 ..< results.numberOfRanges {
+#if os(Linux)
+                    rg = results.range(at: i)
+#else
                     rg = results.rangeAt(i)
+#endif
                     if rg.length < 1 { continue }
                     ms[i] = String.init(ns.substring(with: rg))
                 }
@@ -94,7 +103,7 @@ extension String {
     /// Matches `self` with pattern `regexp`, and returns _all_ match results.
     public func match(regexp: Regexp) -> [Regexp.MatchResult] {
         let r = NSRange(0 ..< self.characters.count)
-        return regexp.nsre.matches(in: self, range: r).map {
+        return regexp.nsre.matches(in: self, options: [], range: r).map {
             Regexp.MatchResult(string: self, results: $0)
         }
     }
@@ -104,7 +113,7 @@ extension String {
     ///
     /// Returns `nil` if `self` does not match the pattern.
     public func firstMatch(regexp: Regexp) -> Regexp.MatchResult? {
-        let mr = regexp.nsre.firstMatch(in: self, range: NSRange(0 ..< self.characters.count))
+        let mr = regexp.nsre.firstMatch(in: self, options: [], range: NSRange(0 ..< self.characters.count))
         return mr.map { Regexp.MatchResult(string: self, results: $0) }
     }
 
