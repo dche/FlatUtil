@@ -6,27 +6,47 @@
 // Copyright (c) 2016 The FlatUtil authors.
 // Licensed under MIT License.
 
+#if !os(Linux)
+
 import Darwin
 
-public final class SpinLock {
+final class SpinLock {
 
     private var _lock: OSSpinLock = OSSpinLock()
 
-    public func lock() {
+    func lock() {
         withUnsafeMutablePointer(to: &_lock) { ptr in
             OSSpinLockLock(ptr)
         }
     }
 
-    public func tryLock() -> Bool {
-        return withUnsafeMutablePointer(to: &_lock) { ptr in
-            return OSSpinLockTry(ptr)
-        }
-    }
-
-    public func unlock() {
+    func unlock() {
         withUnsafeMutablePointer(to: &_lock) { ptr in
             OSSpinLockUnlock(ptr)
         }
     }
 }
+
+#else
+
+import Dispatch
+
+final class SpinLock {
+
+    // Use `DispatchSemaphore` to simulate a R/W lock.
+    private let _lock: DispatchSemaphore
+
+    init() {
+        self._lock = DispatchSemaphore(value: 1)
+    }
+
+    func lock() {
+        let _ = self._lock.wait(timeout: DispatchTime.distantFuture)
+    }
+
+    func unlock() {
+        self._lock.signal()
+    }
+}
+
+#endif

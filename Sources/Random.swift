@@ -6,7 +6,14 @@
 // Copyright (c) 2016 The FlatUtil authors.
 // Licensed under MIT License.
 
-import Darwin
+#if !os(Linux)
+    import Darwin
+#else
+    import Glibc
+#endif
+
+// For `Thread`.
+import Foundation
 
 /// Random number generator.
 public protocol Rng {
@@ -217,6 +224,16 @@ public struct Arc4Rng: Rng {
     }
 }
 
+#else
+
+// For storing `Xoroshiro` in thread local storage.
+fileprivate class Box<T> {
+    var value: T
+    init (_ value: T) {
+        self.value = value
+    }
+}
+
 #endif
 
 /// Types that can be randomly constructed.
@@ -233,12 +250,24 @@ extension Random {
 	/// On Linux, a thread local, randomly seeded `Xoroshiro` is the default RNG.
 	/// On Apple platforms, `Arc4Rng` is used.
     public static func random() -> Self {
+        var rng: Rng
 #if os(Linux)
-		// TODO: Use a thread-local stored `Xoroshiro`
+		// A thread-local `Xoroshiro`.
+        let key = "__FlatUtil.Random.defaultRng"
+        var box = Thread.current.threadDictionary[key] as? Box<Rng>
+        rng = box?.value ?? Xoroshiro()
+        let v = Self.init(withRng: &rng)
+        if box == nil {
+            box = Box(rng)
+            Thread.current.threadDictionary[key] = box
+        } else {
+            box!.value = rng
+        }
+        return v
 #else
-        var rng: Rng = Arc4Rng()
-#endif
+        rng = Arc4Rng()
         return Self.init(withRng: &rng)
+#endif
     }
 }
 
