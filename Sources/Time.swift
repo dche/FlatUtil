@@ -6,7 +6,11 @@
 // Copyright (c) 2016 The FlatUtil authors.
 // Licensed under MIT License.
 
-import Darwin
+#if !os(Linux)
+    import Darwin
+#else
+    import Glibc
+#endif
 
 /// A representation of time point using double precision float number.
 ///
