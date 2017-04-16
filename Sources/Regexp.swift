@@ -9,7 +9,6 @@
 import Foundation
 
 #if os(Linux)
-    public typealias NSRegularExpression = RegularExpression
     public typealias NSTextCheckingResult = TextCheckingResult
 #endif
 

@@ -8,6 +8,8 @@
 
 import Foundation
 
+// CHECK: Learn something from `clap.rs`' API.
+
 fileprivate protocol CommandlineOption {
     // Long name of the option.
     var name: String { get }

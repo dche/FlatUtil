@@ -18,7 +18,7 @@ import Foundation
 /// Random number generator.
 public protocol Rng {
 
-    ///
+    /// Fills a `buffer` of `size` bytes with random bits.
     mutating func fill(buffer: UnsafeMutableRawPointer, size: Int)
 
     /// Returns a random `UInt32` number.
@@ -88,14 +88,14 @@ extension Rng {
         let UPPER_MASK: UInt32 = 0x3F80_0000
         let LOWER_MASK: UInt32 = 0x007F_FFFF
         let tmp = UPPER_MASK | (i & LOWER_MASK)
-        return unsafeBitCast(tmp, to: Float.self) - 1
+        return Float(bitPattern: tmp) - 1
     }
 
     private func normalize(_ i: UInt64) -> Double {
         let UPPER_MASK: UInt64 = 0x3FF0_0000_0000_0000
         let LOWER_MASK: UInt64 = 0x000F_FFFF_FFFF_FFFF
         let tmp = UPPER_MASK | (i & LOWER_MASK)
-        return unsafeBitCast(tmp, to: Double.self) - 1
+        return Double(bitPattern: tmp) - 1
     }
 
     mutating public func nextFloat() -> Float {
@@ -306,7 +306,7 @@ extension Int: Random {
 extension Int32: Random {
     public init (withRng rng: inout Rng) {
         let ui = rng.nextUInt32()
-        let i = unsafeBitCast(ui, to: Int32.self)
+        let i = Int32(bitPattern: ui)
         self = i
     }
 }
@@ -314,7 +314,7 @@ extension Int32: Random {
 extension Int64: Random {
 	public init (withRng rng: inout Rng) {
         let ui = rng.nextUInt64()
-        let i = unsafeBitCast(ui, to: Int64.self)
+        let i = Int64(bitPattern: ui)
         self = i
     }
 }
