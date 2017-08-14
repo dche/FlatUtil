@@ -10,7 +10,7 @@ import Foundation
 
 // CHECK: Learn something from `clap.rs`' API.
 
-fileprivate protocol CommandlineOption {
+fileprivate protocol CommandLineOption {
     // Long name of the option.
     var name: String { get }
     // Short name of the option. Can be empty.
@@ -23,7 +23,7 @@ fileprivate protocol CommandlineOption {
     mutating func set(stringValue: String) throws
 }
 
-fileprivate struct FlagOption: CommandlineOption {
+fileprivate struct FlagOption: CommandLineOption {
     let name: String
     let shortName: String
     let description: String
@@ -37,7 +37,7 @@ fileprivate struct FlagOption: CommandlineOption {
     }
 }
 
-fileprivate struct ValueOption<T>: CommandlineOption {
+fileprivate struct ValueOption<T>: CommandLineOption {
     let name: String
     let shortName: String
     let description: String
@@ -51,7 +51,7 @@ fileprivate struct ValueOption<T>: CommandlineOption {
     }
 }
 
-public final class Commandline {
+public final class CommandLineParser {
 
     /// This structure contains all commandline options with correctly set
     /// option values.
@@ -60,9 +60,9 @@ public final class Commandline {
     /// parsed.
     public struct Options {
 
-        private let options: [String:CommandlineOption]
+        private let options: [String:CommandLineOption]
 
-        fileprivate init (options: [String:CommandlineOption]) {
+        fileprivate init (options: [String:CommandLineOption]) {
             self.options = options
         }
 
@@ -109,31 +109,31 @@ public final class Commandline {
         static let longOptionPattern =
             Regexp(pattern: "^\\-\\-(no\\-)?([a-z][a-z\\-]*[a-z])(=(.+))?$", options: .caseInsensitive)!
 
-        var _options = [String:CommandlineOption]()
+        var _options = [String:CommandLineOption]()
 
         // Add `o` to `_definitions`.
         //
         // Does nothing if
         // - duplicated short/long names exist,
         // - short/long name does not match naming pattern.
-        func defineOption(_ o: CommandlineOption) throws {
+        func defineOption(_ o: CommandLineOption) throws {
             // options can not be replaced.
             guard !_options.contains(where: {
                 $0.0 == o.name
             }) else {
-                throw Commandline.error("Program bug: Duplicated option name [\(o.name)].")
+                throw CommandLineParser.error("Program bug: Duplicated option name [\(o.name)].")
             }
             guard o.shortName.isEmpty || !_options.contains(where: {
                 $0.1.shortName == o.shortName
             }) else {
                 let c = "Program bug: Duplicated option short name [\(o.shortName)]."
-                throw Commandline.error(c)
+                throw CommandLineParser.error(c)
             }
             guard o.name ~= Parser.longOptionNamePattern else {
-                throw Commandline.error("Program bug: Invalid option name [\(o.name)].")
+                throw CommandLineParser.error("Program bug: Invalid option name [\(o.name)].")
             }
             guard o.shortName.isEmpty || ("-" + o.shortName) ~= Parser.shortOptionNamePattern else {
-                throw Commandline.error("Program bug: Invalid option short name [\(o.shortName)].")
+                throw CommandLineParser.error("Program bug: Invalid option short name [\(o.shortName)].")
             }
             _options[o.name] = o
         }
@@ -161,17 +161,17 @@ public final class Commandline {
                 return .value(index)
             }
 
-            func optionWith(name: String) -> CommandlineOption? {
+            func optionWith(name: String) -> CommandLineOption? {
                 return _options.filter { $0.value.name == name }.first?.value
             }
 
-            func optionWith(shortName: String) -> CommandlineOption? {
+            func optionWith(shortName: String) -> CommandLineOption? {
                 return _options.filter { $0.value.shortName == shortName }.first?.value
             }
 
             func parse(long str: String, next: Int) -> Result<Int> {
                 guard let match = str.firstMatch(regexp: Parser.longOptionPattern) else {
-                    return .error(Commandline.error("Invalid command line option format: [\(str)]."))
+                    return .error(CommandLineParser.error("Invalid command line option format: [\(str)]."))
                 }
 
                 let hasNo = !match[1].isEmpty
@@ -181,18 +181,18 @@ public final class Commandline {
                 if hasEqual {
                     do {
                         guard var opt = optionWith(name: optionName) else {
-                            return .error(Commandline.error("Unkown option: [\(str)]."))
+                            return .error(CommandLineParser.error("Unkown option: [\(str)]."))
                         }
                         try opt.set(stringValue: match[4])
                         _options[optionName] = opt
                     } catch let ParsingError.cause(str) {
-                        return .error(Commandline.error(str))
+                        return .error(CommandLineParser.error(str))
                     } catch {
                         fatalError("Unreachable.")
                     }
                 } else {
                     guard var opt = optionWith(name: optionName) as? FlagOption else {
-                        return .error(Commandline.error("Unknown flag option: [\(str)]."))
+                        return .error(CommandLineParser.error("Unknown flag option: [\(str)]."))
                     }
                     opt.value = !hasNo
                     _options[optionName] = opt
@@ -203,20 +203,20 @@ public final class Commandline {
             func parse(shorts str: String, next: Int) -> Result<Int> {
                 var n = next
                 guard let match = str.firstMatch(regexp: Parser.shortOptionNamePattern) else {
-                    return .error(Commandline.error("Invalid command line option format: [\(str)]."))
+                    return .error(CommandLineParser.error("Invalid command line option format: [\(str)]."))
                 }
                 let chrs = match[1].characters
                 // The last character is special. It could be a value option.
                 for c in chrs.dropLast() {
                     guard var o = optionWith(shortName: String(c)) as? FlagOption else {
-                        return .error(Commandline.error("Unknown flag option short name: [\(c)]."))
+                        return .error(CommandLineParser.error("Unknown flag option short name: [\(c)]."))
                     }
                     o.value = true
                     _options[o.name] = o
                 }
                 let c = String(chrs.last!)
                 guard var opt = optionWith(shortName: c) else {
-                    return .error(Commandline.error("Unknown option short name: [\(c)]."))
+                    return .error(CommandLineParser.error("Unknown option short name: [\(c)]."))
                 }
                 if opt is FlagOption {
                     try! opt.set(stringValue: "")
@@ -225,7 +225,7 @@ public final class Commandline {
                         try opt.set(stringValue: words[n + words.startIndex])
                         n += 1
                     } catch let ParsingError.cause(str) {
-                        return .error(Commandline.error(str))
+                        return .error(CommandLineParser.error(str))
                     } catch {
                         fatalError("Unreachable.")
                     }
@@ -243,7 +243,7 @@ public final class Commandline {
                 let mos = missingMandatoryOptions().joined(separator: ", ")
                 guard mos.isEmpty else {
                     let reason = "Mandatory options are not specified: [\(mos)]."
-                    return .error(Commandline.error(reason))
+                    return .error(CommandLineParser.error(reason))
                 }
                 return .value(words.suffix(from: rest + words.startIndex))
             }
@@ -260,7 +260,7 @@ public final class Commandline {
     /// Description of the command.
     public let description: String
 
-    private var _subcommands = [String:Commandline]()
+    private var _subcommands = [String:CommandLineParser]()
 
     private let parser = Parser()
 
@@ -280,16 +280,16 @@ public final class Commandline {
     }
 
     /// Adds a sub-command to `self`.
-    public func add(subCommand cmd: Commandline) {
+    public func add(subCommand cmd: CommandLineParser) {
         let nm = cmd.name
         guard !_subcommands.contains(where: {
             $0.0 == nm
         }) else {
-            Commandline.printError("Program bug: Duplicated sub-command name.")
+            CommandLineParser.printError("Program bug: Duplicated sub-command name.")
             return
         }
-        guard nm ~= Commandline.commandNamePattern else {
-            Commandline.printError("Program bug: Invalid sub-command name.")
+        guard nm ~= CommandLineParser.commandNamePattern else {
+            CommandLineParser.printError("Program bug: Invalid sub-command name.")
             return
         }
         self._subcommands[nm] = cmd
@@ -300,13 +300,13 @@ public final class Commandline {
         return _subcommands.contains { $0.key == name }
     }
 
-    private func define(option: CommandlineOption) {
+    private func define(option: CommandLineOption) {
         do {
             try parser.defineOption(option)
         } catch let ParsingError.cause(str) {
             // option definition error is bug of the program, and is not
             // reported in log.
-            Commandline.printError(str)
+            CommandLineParser.printError(str)
         } catch {
             fatalError("Unreachable.")
         }
@@ -415,7 +415,7 @@ public final class Commandline {
                 let opts = Options(options: parser._options)
                 return ([], [String](params), opts)
             case let .error(ParsingError.cause(str)):
-                Commandline.printError(str)
+                CommandLineParser.printError(str)
                 return nil
             default:
                 fatalError("Unreachable.")
@@ -429,7 +429,7 @@ public final class Commandline {
             return ([cmd.name] + subPath, params, opts)
         }
         // Not a valid sub-command.
-        Commandline.printError("Unknown command: \"\(subcmd)\".")
+        CommandLineParser.printError("Unknown command: \"\(subcmd)\".")
         // Maybe a typo, print suggestions.
         let simcmds = _subcommands.keys.filter {
             self.isSimilar($0, subcmd)

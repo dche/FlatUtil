@@ -109,23 +109,23 @@ class FutureTests: XCTestCase {
 
     func testMulithreadAwait() {
         // TODO: Use C11 `stdatomic` when it is available in SWIFT.
-        // var sideEffect: Int32 = 0
-        // let f: Future<Int32> = Future {
-        //     usleep(50)
-        //     return Int32(1)
-        // }
-        // let n = 1_000
-        // for _ in 0..<n {
-        //     let _: Future<Void> = f.map {
-        //         OSAtomicAdd32($0, &sideEffect)
-        //         return .value(())
-        //     }
-        // }
-        // let w: Future<Void> = f.map { _ in
-        //     usleep(1_000)
-        // }
-        // let _ = w.result()
-        // XCTAssertEqual(sideEffect, Int32(n))
+        var sideEffect: Int32 = 0
+        let f: Future<Int32> = Future {
+            usleep(50)
+            return Int32(1)
+        }
+        let n = 1_000
+        for _ in 0..<n {
+            let _: Future<Void> = f.map {
+                OSAtomicAdd32($0, &sideEffect)
+                return .value(())
+            }
+        }
+        let w: Future<Void> = f.map { _ in
+            usleep(1_000)
+        }
+        let _ = w.result()
+        XCTAssertEqual(sideEffect, Int32(n))
     }
 
     func testLongCompositionChain() {

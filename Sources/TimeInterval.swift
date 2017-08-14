@@ -45,6 +45,10 @@ extension TimeInterval {
         return TimeInterval(lhs.seconds * rhs)
     }
 
+    public static func * (lhs: TimeInterval, rhs: Int) -> TimeInterval {
+        return lhs * Double(rhs)
+    }
+
     public static func == (lhs: TimeInterval, rhs: TimeInterval) -> Bool {
         return lhs.seconds == rhs.seconds
     }

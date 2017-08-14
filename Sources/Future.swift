@@ -12,13 +12,6 @@ import Foundation
     import Dispatch
 #endif
 
-// SWIFT EVOLUTION: It's ideal to make `FutureExecutionError` a subtype of
-//                  `Future`. Can not do this because `Future` is generic.
-
-public enum FutureExecutionError: Error {
-    case timeoutError
-}
-
 public final class Future<T> {
 
     private var _result: Result<T>?
@@ -75,8 +68,8 @@ public final class Future<T> {
     }
 
     // Intializes and then submits `operation` to `dispatchQueue`.
-    fileprivate init (
-        dispatchQueue: DispatchQueue? = nil,
+    init (
+        dispatchQueue: DispatchQueue?,
         operation: @escaping () -> Result<T>
     ) {
         self._exec = dispatchQueue
@@ -86,20 +79,6 @@ public final class Future<T> {
         executor.async {
             self.complete(withResult: operation())
         }
-    }
-
-    /// Constructs a `Future` object with an `operation` that returns a normal
-    /// value.
-    ///
-    /// This initializer wraps the value to a `Result` structure.
-    public convenience init (
-        dispatchQueue: DispatchQueue? = nil,
-        operation: @escaping () -> T
-    ) {
-        let op: () -> Result<T> = {
-            return .value(operation())
-        }
-        self.init(dispatchQueue: dispatchQueue, operation: op)
     }
 
     /// Constructs a `Future` object with an `operation` that might throw
@@ -159,7 +138,7 @@ public final class Future<T> {
             DispatchTime(uptimeNanoseconds: DispatchTime.now().uptimeNanoseconds + UInt64(timeout.nanoseconds))
         assert(sem != nil)
         if sem!.wait(timeout: dt) == DispatchTimeoutResult.timedOut {
-            return .error(FutureExecutionError.timeoutError)
+            return .error(RuntimeError.timeout)
         } else {
             sem!.signal()
         }
@@ -171,6 +150,8 @@ public final class Future<T> {
     /// with a result.
     public var isCompleted: Bool { return _result != nil }
 
+    /// Transforms the result of the receiver and returns a `Future` with
+    /// the new value.
     public func map<S>(operation: @escaping (T) -> Result<S>) -> Future<S> {
         guard let res = _result else {
             let f = Future<S>(dispatchQueue: self._exec)
@@ -179,14 +160,9 @@ public final class Future<T> {
             }
             return f
         }
-        switch res {
-        case let .value(val):
-            return Future<S>(dispatchQueue: self._exec) {
-                return operation(val)
-            }
-        case let .error(err):
-            return Future<S>(result: .error(err))
-        }
+        return Future<S>.init(dispatchQueue: self._exec, operation: {
+            res.flatMap(operation)
+        })
     }
 
     public func map<S>(operation: @escaping (T) -> S) -> Future<S> {

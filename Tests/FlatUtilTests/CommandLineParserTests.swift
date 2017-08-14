@@ -2,10 +2,10 @@
 import XCTest
 @testable import FlatUtil
 
-class CommandlineTests: XCTestCase {
+class CommandLineParserTests: XCTestCase {
 
     func testEmptyArgument() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let pr = cmd.parse(arguments: [])
         XCTAssertNotNil(pr)
         let (cmds, params, opts) = pr!
@@ -15,7 +15,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testCommandWithEmptyArgument() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let (cmds, params, opts) = cmd.parse(arguments: ["prog", "help"])!
         XCTAssert(cmds.isEmpty)
         XCTAssertEqual(params.first!, "help")
@@ -23,7 +23,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testShortFlagOption() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         cmd.define(flagOption: "verbose", shortName: "v", description: "Show more details.")
         cmd.define(flagOption: "useMagic", shortName: "m", description: "Set to use magic.")
 
@@ -49,7 +49,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testShortValueOption() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let str_validator: (String) throws -> String = { str in
             return str
         }
@@ -84,7 +84,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testAllowEmptyShortName() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         cmd.define(flagOption: "npm", shortName: "", description: "install npm or not.")
         cmd.define(flagOption: "opencl", shortName: "", description: "")
 
@@ -95,7 +95,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testLongFlagOption() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         cmd.define(flagOption: "verbose", shortName: "v", description: "Show more details.")
         cmd.define(flagOption: "useMagic", shortName: "m", description: "Set to use magic.")
 
@@ -110,7 +110,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testLongValueOption() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let str_validator: (String) throws -> String = { str in
             return str
         }
@@ -138,7 +138,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testDoubleHyphen() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let (_, p, _) = cmd.parse(arguments: ["prog", "--", "--no-option", "a/b.txt"])!
         XCTAssertEqual(p.count, 2)
         XCTAssertEqual(p[p.startIndex], "--no-option")
@@ -146,8 +146,8 @@ class CommandlineTests: XCTestCase {
     }
 
     func testSubCommand() {
-        let cmd = Commandline(description: "")
-        let subcmd = Commandline(name: "version", description: "")
+        let cmd = CommandLineParser(description: "")
+        let subcmd = CommandLineParser(name: "version", description: "")
         subcmd.define(flagOption: "verbose", shortName: "v", description: "")
 
         cmd.add(subCommand: subcmd)
@@ -161,14 +161,14 @@ class CommandlineTests: XCTestCase {
     }
 
     func testInvalidSubCommandName() {
-        let cmd = Commandline(description: "")
-        let subcmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
+        let subcmd = CommandLineParser(description: "")
         cmd.add(subCommand: subcmd)
         XCTAssertFalse(cmd.has(subCommand: ""))
     }
 
     func testDuplicatedOptionName() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         cmd.define(flagOption: "count", shortName: "c", description: "")
         cmd.define(valueOption: "count", shortName: "n", description: "") { cnt in
             return cnt
@@ -184,7 +184,7 @@ class CommandlineTests: XCTestCase {
     }
 
     func testMissingMandatoryOption() {
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         let str_validator: (String) throws -> String = { str in
             return str
         }
@@ -214,17 +214,17 @@ class CommandlineTests: XCTestCase {
     func testInvalidOptionValue() {
         let name_validator: (String) throws -> String = { str in
             guard str.characters.count > 3 else {
-                throw Commandline.error("--name is too short.")
+                throw CommandLineParser.error("--name is too short.")
             }
             return str
         }
         let age_validator: (String) throws -> Int = { str in
             guard let i = Int(str), i > 10 else {
-                throw Commandline.error("--age is too young.")
+                throw CommandLineParser.error("--age is too young.")
             }
             return i
         }
-        let cmd = Commandline(description: "")
+        let cmd = CommandLineParser(description: "")
         cmd.define(valueOption: "name", shortName: "n", description: "Name.", validator: name_validator)
         cmd.define(valueOption: "age", shortName: "a", description: "Age.", validator: age_validator)
 
