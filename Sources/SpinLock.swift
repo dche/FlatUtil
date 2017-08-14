@@ -6,6 +6,8 @@
 // Copyright (c) 2016 The FlatUtil authors.
 // Licensed under MIT License.
 
+// TODO: Remove this file after `stdatomic` is available.
+
 #if !os(Linux)
 
 import Darwin

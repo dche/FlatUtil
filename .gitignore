@@ -3,3 +3,4 @@
 *.plist
 *.playground
 .DS_Store
+.editorconfig
