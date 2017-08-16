@@ -820,7 +820,7 @@ extension Observable {
     ///   (http://reactivex.io/documentation/operators/just.html) on ReactiveX.
     public static func just(_ item: Item) -> Observable<Item> {
         return Observable<Item>() { _, _, cb in
-            while cb(.item(item)) {}
+            let _ = cb(.item(item)) && cb(.complete)
         }
     }
 
