@@ -7,7 +7,6 @@
 // Licensed under MIT License.
 
 // Operators that are not implemented:
-// - Never. I don't know where it is useful.
 // - And/Then/When. Complex.
 // - Join. Name is too general while the meaning is obscure.
 // - Materialize/Dematerialize. Less useful.
@@ -821,8 +820,16 @@ extension Observable {
     ///   (http://reactivex.io/documentation/operators/just.html) on ReactiveX.
     public static func just(_ item: Item) -> Observable<Item> {
         return Observable<Item>() { _, _, cb in
-            while cb(.item(item)) {}
+            let _ = cb(.item(item)) && cb(.complete)
         }
+    }
+
+    /// Creates an `Observable` that does not emit anything.
+    ///
+    /// - seealso: [`Never` operator documentation]
+    ///   (http://reactivex.io/documentation/operators/empty-never-throw.html) on ReactiveX.
+    public static func never() -> Observable<Item> {
+        return Observable<Item>() { _, _, _ in }
     }
 
     /// Creates an `Observable` that emits given item repeatedly.

@@ -152,7 +152,7 @@ class ObservableCreationTests: XCTestCase {
 
     func testJust() {
         let o = Observable.just(3).take(5)
-        expectResults(observable: o) { XCTAssertEqual($0, [3, 3, 3, 3, 3]) }
+        expectResults(observable: o) { XCTAssertEqual($0, [3]) }
     }
 
     func testRange() {
