@@ -834,12 +834,9 @@ extension Observable {
 
     /// Creates an `Observable` that emits given item repeatedly.
     ///
-    /// - note: `repeat(_:count:) is a better name. But `repeat` is
-    /// a keyword.
-    ///
     /// - seealso: [`Repeat` operator documentation]
     ///   (http://reactivex.io/documentation/operators/repeat.html) on ReactiveX.
-    public static func repeatEmit(_ item: Item, count: Int) -> Observable<Item> {
+    public static func `repeat`(_ item: Item, count: Int) -> Observable<Item> {
         return Observable<Item>() { _, _, cb in
             var i = 0
             while i < count {
@@ -2200,12 +2197,9 @@ extension ObservableProtocol {
     /// notification is emitted, it tries to recover to an `Observable` derived
     /// from the error.
     ///
-    /// - note: The name `catch` can't be used since *catch* is a keyword of
-    ///   Swift.
-    ///
     /// - seealso: ['Catch' operator documentation]
     ///   (http://reactivex.io/documentation/operators/catch.html) on ReactiveX.
-    public func fallback(
+    public func `catch`(
         _ operation: @escaping (Error) -> Observable<Item>
     ) -> Observable<Item> {
         return Observable<Item>() { t, q, cb in

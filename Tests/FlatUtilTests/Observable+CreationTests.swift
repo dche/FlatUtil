@@ -160,8 +160,8 @@ class ObservableCreationTests: XCTestCase {
         expectResults(observable: o) { XCTAssertEqual($0, [7, 8, 9]) }
     }
 
-    func testRepeatEmit() {
-        let o = Observable.repeatEmit(7, count: 3)
+    func testRepeat() {
+        let o = Observable.repeat(7, count: 3)
         expectResults(observable: o) { XCTAssertEqual($0, [7, 7, 7]) }
     }
 

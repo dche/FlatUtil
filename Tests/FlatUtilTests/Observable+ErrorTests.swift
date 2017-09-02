@@ -6,7 +6,7 @@ import XCTest
 
 class ObservableErorTests: XCTestCase {
 
-    func testFallback() {
+    func testCatch() {
         let o = Observable<Int>(callback: { o in
             o.onNext(0)
             o.onNext(1)
@@ -15,7 +15,7 @@ class ObservableErorTests: XCTestCase {
             o.onNext(11)
         })
         let s = Observable.from(sequence: [2,3,4])
-        expectResults(observable: o.fallback { _ in s }) {
+        expectResults(observable: o.catch { _ in s }) {
             XCTAssertEqual($0, [0,1,2,3,4])
         }
     }

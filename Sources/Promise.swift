@@ -61,7 +61,7 @@ public struct Promise<T> {
 
     /// Returns a `Promise` that is settled with the fulfilled value of the
     /// receiver, or a value derived from the error
-    public func fallback(_ handler: @escaping (Error) -> T?) -> Promise<T> {
+    public func `catch`(_ handler: @escaping (Error) -> T?) -> Promise<T> {
         return Promise(self.f.fallback {
             // Called if only self.f's result IS an error.
             let err = self.f.result().error!
@@ -73,7 +73,7 @@ public struct Promise<T> {
     }
 
     /// `FlatMap` version of `fallback`.
-    public func fallback(_ handler: @escaping (Error) -> Promise<T>?) -> Promise<T> {
+    public func `catch`(_ handler: @escaping (Error) -> Promise<T>?) -> Promise<T> {
         return Promise(self.f.fallback {
             let err = self.f.result().error!
             guard let p = handler(err) else {
@@ -115,7 +115,7 @@ extension Promise {
     }
 
     /// Returns a `Promise` that is settled with the fulfilled value or
-    /// rejection error of the first settled `Promise` of given sequence of 
+    /// rejection error of the first settled `Promise` of given sequence of
     /// `Promise`s.
     ///
     /// - note: Settlements of `Promise`s can not be cancelled. So if
@@ -134,7 +134,7 @@ extension Promise {
                 guard val == nil else { break }
                 let _ = p.then {
                     Result<T>.value($0)
-                }.fallback {
+                }.catch {
                     Result<T>.error($0)
                 }.then { (v: Result<T>) -> Result<T> in
                     lck.lock()

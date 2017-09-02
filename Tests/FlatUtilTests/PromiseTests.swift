@@ -29,8 +29,8 @@ class PromiseTests: XCTestCase {
         XCTAssertEqual(pv, 4)
     }
 
-    func testFallback() {
-        let p = Promise<Int>.reject(PromiseTestError.that).fallback({ _ in
+    func testCatch() {
+        let p = Promise<Int>.reject(PromiseTestError.that).catch({ _ in
             return 2
         })
         let pv = p.await()
