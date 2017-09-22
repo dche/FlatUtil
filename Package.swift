@@ -1,3 +1,4 @@
+// swift-tools-version:4.0
 //
 // FlatUtil - Package.swift
 //
@@ -7,5 +8,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "FlatUtil"
+    name: "FlatUtil",
+    targets: [
+        .target(
+            name: "FlatUtil",
+            path: "Sources"
+        ),
+        .testTarget(
+            name: "FlatUtilTests",
+            dependencies: ["FlatUtil"],
+            path: "Tests/FlatUtilTests"
+        ),
+    ]
 )
