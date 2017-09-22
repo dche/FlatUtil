@@ -17,18 +17,18 @@ class ObservableCombiningTests: XCTestCase {
     }
 
     func testZipWithLatest() {
-        let o = Observable.interval(0.1.seconds).map { $0 * 2 + 1 }.take(5)
+        let o = Observable.interval(0.2.seconds).map { $0 * 2 + 1 }.take(5)
 
         expectResults(observable: o.zipWith(latest: Observable<Int>.empty()).map { $0.0 }, satisfy: {
             XCTAssert($0.isEmpty)
         })
 
-        let s = Observable.interval(0.2.seconds).delay(0.1.seconds).map { $0 * 2 }
+        let s = Observable.interval(0.4.seconds).delay(0.1.seconds).map { $0 * 2 }
         expectResults(observable: o.zipWith(latest: s).map { $0.0 }, satisfy: {
-            XCTAssertEqual($0, [5,7,9])
+            XCTAssertEqual($0, [3,5,7,9])
         })
         expectResults(observable: o.zipWith(latest: s).map { $0.1 }, satisfy: {
-            XCTAssertEqual($0, [0,0,2])
+            XCTAssertEqual($0, [0,0,2,2])
         })
     }
 
