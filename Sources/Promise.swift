@@ -103,6 +103,7 @@ extension Promise {
         guard promises.underestimatedCount > 0 else {
             return res
         }
+        // TODO: Use `dispatch_barrier_sync` instead?
         promises.forEach({ p in
             let future: Future<[T]> = res.f.join(p.f) { (ary, v) in
                 var ar = ary

@@ -12,7 +12,6 @@ class ObservableUtilityTests: XCTestCase {
             .map { $0.1 }
             .take(1)
         expectResults(observable: o) {
-            print($0)
             XCTAssert($0[0] > 0.1.seconds)
         }
     }

@@ -89,7 +89,7 @@ extension XCTestCase {
         satisfy: @escaping (Error?) -> Void
     ) {
         let observer = AllItems<O.Item>()
-        let e = expectation(description: "Results")
+        let e = expectation(description: "Error")
         observer.expect { rs in
             satisfy(rs.error)
             e.fulfill()

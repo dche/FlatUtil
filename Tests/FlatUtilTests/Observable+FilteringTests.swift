@@ -81,11 +81,11 @@ class ObservableFilteringTests: XCTestCase {
     }
 
     func testSample() {
-        let s0 = Observable.interval(0.1.seconds)
-        let s1 = Observable.interval(0.2.seconds).delay(0.05.seconds).take(5)
+        let s0 = Observable.interval(0.2.seconds)
+        let s1 = Observable.interval(0.4.seconds).delay(0.05.seconds).take(3)
         let o = s0.sample(s1)
         expectResults(observable: o, satisfy: {
-            XCTAssertEqual($0, [1,3,5,7,9])
+            XCTAssertEqual($0, [0,2,4])
         })
     }
 
@@ -117,10 +117,10 @@ class ObservableFilteringTests: XCTestCase {
     }
 
     func testSkipUntil() {
-        let s = Observable<Int>.just(1).delay(0.1.seconds)
+        let s = Observable<Int>.just(1).delay(0.2.seconds)
         let o = Observable<Int>.interval(0.1.seconds).skip(until: s).take(2)
         expectResults(observable: o, satisfy: {
-            XCTAssertEqual($0, [2,3])
+            XCTAssertEqual($0, [3,4])
         })
     }
 

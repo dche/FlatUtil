@@ -19,8 +19,9 @@
 
 import Dispatch
 
-// The default dispatch queue for executing generators of `Observable`.
-private let emittingQueue =
+/// The default dispatch queue for executing generators of `Observable`s.
+/// This is a concurrent queue.
+public let emittingQueue =
     DispatchQueue(
         label: "com.eleuth.FlatUtil.Observable.emittingQueue",
         qos: .background,
@@ -156,7 +157,7 @@ public struct Observer<T>: ObserverProtocol {
     ///   - error: Called within `onError`.
     ///   - next: Called within `onNext`.
     public init (
-        complete: @escaping () -> Void = { _ in },
+        complete: @escaping () -> Void = { },
         error: @escaping (Error) -> Void = { _ in },
         next: @escaping (Item) -> Void
     ) {
@@ -286,7 +287,7 @@ extension ObservableProtocol {
 
     public func subscribe(
         on queue: DispatchQueue = emittingQueue,
-        complete: @escaping () -> Void = { _ in },
+        complete: @escaping () -> Void = {  },
         error: @escaping (Error) -> Void = { _ in },
         next: @escaping (Item) -> Void
     ) -> Subscription<Item> {
@@ -386,9 +387,17 @@ private final class SubjectImpl<Item> {
         _callbacks[handle] = callback
     }
 
+    func emit(item: EmittingResult<Item>, to handle: Int, on queue: DispatchQueue) -> Bool {
+        guard let cb = _callbacks[handle] else { return false }
+        queue.async {
+            cb(item)
+        }
+        return true
+    }
+
     // Triggered when an `Observer` cancelled subscription.
     func unregister(handle: Int) {
-        subjectSyncQueue.async {
+        subjectSyncQueue.sync {
             assert(handle > 0)
             assert(self._callbacks[handle] != nil)
             self._callbacks.removeValue(forKey: handle)
@@ -497,6 +506,11 @@ public final class BehaviorSubject<I>: Subject {
 
     private var _impl: SubjectImpl<Item>?
 
+    /// Returns the latest item of the receiver.
+    public var latestItem: Item? {
+        return _current.item
+    }
+
     public init (initial: Item) {
         self._current = .item(initial)
         self._impl = SubjectImpl<Item>()
@@ -529,11 +543,7 @@ public final class BehaviorSubject<I>: Subject {
                         }
                     }
                 }
-                queue.async {
-                    if !callback(self._current) {
-                        impl.unregister(handle: h)
-                    }
-                }
+                let _ = impl.emit(item: self._current, to: h, on: queue)
             case .complete:
                 fatalError("Unreachable.")
             case .error(_):
@@ -672,23 +682,22 @@ public final class ReplaySubject<I>: Subject {
         callback: @escaping (EmittingResult<Item>) -> Bool
     ) {
         subjectSyncQueue.async {
-            var isCancelled = false
-            for item in self._records.iterator {
-                guard !isCancelled else { break }
+            guard let impl = self._impl else {
                 queue.async {
-                    switch item {
-                    case .item(_):
-                        // FIXME: If `queue` is concurrent, emission may
-                        // still happen after `isCancelled`.
-                        isCancelled = !callback(item)
-                        return
-                    default:
-                        let _ = callback(item)
-                        isCancelled = true
+                    for item in self._records.iterator {
+                        var cancelled = false
+                        switch item {
+                        case .item(_):
+                            cancelled = !callback(item)
+                        default:
+                            let _ = callback(item)
+                            cancelled = true
+                        }
+                        if cancelled { break }
                     }
                 }
+                return
             }
-            guard let impl = self._impl, !isCancelled else { return }
             let h = impl.nextHandle
             impl.register(handle: h) { er in
                 queue.async {
@@ -701,6 +710,9 @@ public final class ReplaySubject<I>: Subject {
                         let _ = callback(er)
                     }
                 }
+            }
+            for item in self._records.iterator {
+                guard impl.emit(item: item, to: h, on: queue) else { break }
             }
         }
     }

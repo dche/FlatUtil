@@ -25,12 +25,13 @@ public final class Future<T> {
     private var _completions: [(Result<T>) -> Void] = []
 
     private func complete(withResult r: Result<T>) {
-        assert(_result == nil)
+        guard let lk = _lock else { return }
+        lk.lock()
+        defer { lk.unlock() }
+
+        assert(self._result == nil)
         // The only place where `_result` is set.
         self._result = r
-
-        let lk = _lock!
-        lk.lock()
         self._semaphore?.signal()
         self._semaphore = nil
         // Schedule dependants.
@@ -43,7 +44,6 @@ public final class Future<T> {
         }
         _lock = nil
         _exec = nil
-        lk.unlock()
     }
 
     private func onComplete(_ op: @escaping (Result<T>) -> Void) {

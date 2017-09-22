@@ -41,11 +41,7 @@ public struct Regexp: Equatable, Hashable {
             if rg.length > 0 {
                 ms[0] = String.init(ns.substring(with: results.range))
                 for i in 1 ..< results.numberOfRanges {
-#if os(Linux)
                     rg = results.range(at: i)
-#else
-                    rg = results.rangeAt(i)
-#endif
                     if rg.length < 1 { continue }
                     ms[i] = String.init(ns.substring(with: rg))
                 }

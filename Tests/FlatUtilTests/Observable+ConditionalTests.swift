@@ -64,7 +64,7 @@ class ObservableConditionalTests: XCTestCase {
         let s4 = Observable.from(sequence: [0,2,3])
         let s5 = Observable.interval(150.milliseconds).take(5)
         let s6 = Observable<Int>(callback: { o in
-            o.onNext(1)
+            o.onNext(0)
             o.onError(ObservableTestError.init(reason: "noitem"))
         })
 
@@ -87,7 +87,6 @@ class ObservableConditionalTests: XCTestCase {
             XCTAssert($0.isEmpty)
         })
         expectError(observable: o.sequenceEqual(s6), satisfy: { e in
-            XCTAssertNotNil(e)
             XCTAssertEqual((e! as! ObservableTestError).reason, "noitem")
         })
     }
