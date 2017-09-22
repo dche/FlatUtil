@@ -9,6 +9,12 @@ import PackageDescription
 
 let package = Package(
     name: "FlatUtil",
+    products: [
+        .library(
+            name: "FlatUtil",
+            targets: ["FlatUtil"]
+        )
+    ],
     targets: [
         .target(
             name: "FlatUtil",
