@@ -60,6 +60,7 @@ class PromiseTests: XCTestCase {
         XCTAssertEqual(pv!, [1,4,9,16])
     }
 
+    // FIXME: This case fails on Linux. `usleep()`?
     func testRace() {
         var p = Promise<[Int]>.race([2,3,4,1].map { i in
             Promise { () -> Result<Int> in

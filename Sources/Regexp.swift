@@ -8,10 +8,6 @@
 
 import Foundation
 
-#if os(Linux)
-    public typealias NSTextCheckingResult = TextCheckingResult
-#endif
-
 /// A simple wrapper of `NSRegularExpression`.
 ///
 /// - Example

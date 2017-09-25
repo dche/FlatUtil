@@ -1,5 +1,6 @@
 
 import Foundation
+import Dispatch
 import XCTest
 @testable import FlatUtil
 

@@ -107,6 +107,8 @@ class FutureTests: XCTestCase {
         XCTAssertEqual(f.result().value!, 100)
     }
 
+#if !os(Linux)  // Temporarily disabled on Linux for `OSAtomicAdd32`.
+
     func testMulithreadAwait() {
         // TODO: Use C11 `stdatomic` when it is available in SWIFT.
         var sideEffect: Int32 = 0
@@ -127,6 +129,8 @@ class FutureTests: XCTestCase {
         let _ = w.result()
         XCTAssertEqual(sideEffect, Int32(n))
     }
+
+#endif
 
     func testLongCompositionChain() {
         var f: Future<Int> = Future {
