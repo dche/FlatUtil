@@ -2,7 +2,6 @@ import XCTest
 @testable import FlatUtilTests
 
 extension ResultTests {
-
     static let allTests: [(String, (ResultTests) -> () throws -> ())] = [
         ("testValue", testValue),
         ("testError", testError),
@@ -13,7 +12,6 @@ extension ResultTests {
 }
 
 extension FutureTests {
-
     static let allTests: [(String, (FutureTests) -> () throws -> ())] = [
         ("testNormalExecution", testNormalExecution),
         ("testLengthyOperation", testLengthyOperation),
@@ -23,10 +21,22 @@ extension FutureTests {
         ("testFallback", testFallback),
         ("testJoin", testJoin),
         ("testPromise", testPromise),
-        ("testMulithreadAwait", testMulithreadAwait),
+        // ("testMulithreadAwait", testMulithreadAwait),
         ("testLongCompositionChain", testLongCompositionChain),
         ("testLongJoinChain", testLongJoinChain),
         ("testCustomDispatchQueue", testCustomDispatchQueue),
+    ]
+}
+
+extension PromiseTests {
+    static let allTests: [(String, (PromiseTests) -> () throws -> ())] = [
+        ("testResolve", testResolve),
+        ("testReject", testReject),
+        ("testThen", testThen),
+        ("testCatch", testCatch),
+        ("testAwait", testAwait),
+        ("testAll", testAll),
+        ("testRace", testRace),
     ]
 }
 
@@ -65,8 +75,8 @@ extension RngTests {
     ]
 }
 
-extension CommandlineTests {
-    static let allTests: [(String, (CommandlineTests) -> () throws -> ())] = [
+extension CommandLineParserTests {
+    static let allTests: [(String, (CommandLineParserTests) -> () throws -> ())] = [
         ("testEmptyArgument", testEmptyArgument),
         ("testCommandWithEmptyArgument", testCommandWithEmptyArgument),
         ("testShortFlagOption", testShortFlagOption),
@@ -83,12 +93,39 @@ extension CommandlineTests {
     ]
 }
 
+extension ObservableCreationTests {
+    static let allTests: [(String, (ObservableCreationTests) -> () throws -> ())] = [
+        ("testGenerate", testGenerate),
+        ("testEmpty", testEmpty),
+        ("testError", testError),
+        ("testFromSequence", testFromSequence),
+        ("testInterval", testInterval),
+        ("testJust", testJust),
+        ("testRange", testRange),
+        ("testRepeat", testRepeat),
+        ("testStart", testStart),
+        ("testTimer", testTimer),
+    ]
+}
+
+extension ObservableErorTests {
+    static let allTests: [(String, (ObservableErorTests) -> () throws -> ())] = [
+        ("testCatch", testCatch),
+        ("testRetry", testRetry),
+    ]
+}
+
+// TODO: Add more `Observable` test cases.
+
 XCTMain([
-     testCase(ResultTests.allTests),
-     testCase(FutureTests.allTests),
-     testCase(GenTests.allTests),
-     testCase(QuickCheckTests.allTests),
-     testCase(RegexpTests.allTests),
-     testCase(RngTests.allTests),
-     testCase(CommandlineTests.allTests),
+    testCase(ResultTests.allTests),
+    testCase(FutureTests.allTests),
+    testCase(PromiseTests.allTests),
+    testCase(GenTests.allTests),
+    testCase(QuickCheckTests.allTests),
+    testCase(RegexpTests.allTests),
+    testCase(RngTests.allTests),
+    testCase(CommandLineParserTests.allTests),
+    testCase(ObservableCreationTests.allTests),
+    testCase(ObservableErorTests.allTests),
 ])
